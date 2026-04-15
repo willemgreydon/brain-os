@@ -23,11 +23,39 @@ const VIEW_MODE_OPTIONS = [
   {
     value: "split" as const,
     label: "Split",
-    description: "Graph and content side by side",
+    description: "Graph and editor side by side",
   },
 ];
 
-const GRAPH_MODE_OPTIONS = [
+const GRAPH_LAYER_MODE_OPTIONS = [
+  {
+    value: "semantic" as const,
+    label: "Semantic",
+    description: "Notes, concepts, links and tag bridges",
+  },
+  {
+    value: "filesystem" as const,
+    label: "Files",
+    description: "Folders, files, hierarchy and cross-folder references",
+  },
+  {
+    value: "code" as const,
+    label: "Code",
+    description: "Imports, exports, modules and architecture",
+  },
+  {
+    value: "hybrid" as const,
+    label: "Hybrid",
+    description: "Notes + code + documents in one graph",
+  },
+  {
+    value: "temporal" as const,
+    label: "Temporal",
+    description: "Recently changed nodes and session activity",
+  },
+];
+
+const GRAPH_RENDER_MODE_OPTIONS = [
   {
     value: "3d" as const,
     label: "3D",
@@ -64,6 +92,9 @@ export function TopBar({ onChooseVault, onRefreshVault, status }: TopBarProps) {
   const viewMode = useAppStore((state) => state.viewMode);
   const setViewMode = useAppStore((state) => state.setViewMode);
 
+  const graphLayerMode = useAppStore((state) => state.graphLayerMode);
+  const setGraphLayerMode = useAppStore((state) => state.setGraphLayerMode);
+
   const graphMode = useAppStore((state) => state.graphMode);
   const setGraphMode = useAppStore((state) => state.setGraphMode);
 
@@ -75,7 +106,7 @@ export function TopBar({ onChooseVault, onRefreshVault, status }: TopBarProps) {
       className="absolute left-6 right-6 top-6 z-20 rounded-[28px] border border-white/10 bg-black/30 shadow-glow backdrop-blur-2xl"
       style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
     >
-      <div className="flex min-h-[92px] items-center justify-between gap-6 px-5 py-4">
+      <div className="flex min-h-[104px] items-center justify-between gap-6 px-5 py-4">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.28em] text-white/40">
             Cognitive workspace
@@ -83,11 +114,11 @@ export function TopBar({ onChooseVault, onRefreshVault, status }: TopBarProps) {
 
           <div className="mt-1 flex items-center gap-3">
             <h2 className="truncate text-lg font-semibold tracking-tight text-white">
-              Knowledge Graph Workspace
+              Brain OS Multi-Layer Graph Workspace
             </h2>
 
-            <span className="hidden rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-white/45 md:inline-flex">
-              Real Vault + Semantic Flow
+            <span className="hidden rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-white/45 xl:inline-flex">
+              Semantic + File System + Code + Hybrid + Temporal
             </span>
           </div>
 
@@ -96,13 +127,16 @@ export function TopBar({ onChooseVault, onRefreshVault, status }: TopBarProps) {
               View: {viewMode}
             </span>
             <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-              Graph mode: {graphMode}
+              Layer: {graphLayerMode}
+            </span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+              Render: {graphMode}
             </span>
           </div>
         </div>
 
         <div
-          className="flex flex-wrap items-center justify-end gap-3"
+          className="flex max-w-[64rem] flex-wrap items-center justify-end gap-3"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
         >
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
@@ -129,10 +163,36 @@ export function TopBar({ onChooseVault, onRefreshVault, status }: TopBarProps) {
             })}
           </div>
 
-          <div className="hidden h-6 w-px bg-white/10 xl:block" />
+          <div className="hidden h-6 w-px bg-white/10 2xl:block" />
 
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
-            {GRAPH_MODE_OPTIONS.map((option) => {
+            {GRAPH_LAYER_MODE_OPTIONS.map((option) => {
+              const isActive = graphLayerMode === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setGraphLayerMode(option.value)}
+                  title={option.description}
+                  aria-pressed={isActive}
+                  className={cn(
+                    "rounded-full px-3.5 py-2 text-sm font-medium transition",
+                    isActive
+                      ? "border border-fuchsia-300/35 bg-fuchsia-300/12 text-fuchsia-100 shadow-[0_0_0_1px_rgba(244,114,182,0.08)]"
+                      : "border border-transparent bg-transparent text-white/65 hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden h-6 w-px bg-white/10 2xl:block" />
+
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
+            {GRAPH_RENDER_MODE_OPTIONS.map((option) => {
               const isActive = graphMode === option.value;
 
               return (

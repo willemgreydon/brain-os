@@ -1,5 +1,6 @@
 // apps/desktop/src/App.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import type { GraphData } from "@brain/graph-core";
 import { getBrainAssetType } from "./lib/asset-registry";
 import {
   DEFAULT_SETTINGS,
@@ -19,6 +20,8 @@ import {
   buildUnifiedGraphFromDocuments,
   buildUnifiedGraphFromPayload,
 } from "./lib/graph/unified-graph";
+import { deriveGraphModeData, type VaultGraphDocument } from "./lib/graph/deriveGraphModeData";
+import { useAppStore } from "./lib/store";
 import WorkspaceCommandBar, {
   type WorkspaceCommand,
 } from "./components/workspace/WorkspaceCommandBar";
@@ -51,6 +54,30 @@ type BrainAsset = {
   wordCount?: number;
   raw?: string;
   metadata?: Record<string, unknown>;
+};
+
+type WorkspaceGraphData = {
+  nodes: Array<{
+    id: string;
+    title?: string;
+    type?: string;
+    layer?: string;
+    cluster?: string;
+    tags?: string[];
+    score?: number;
+    color?: string;
+    size?: number;
+    relativePath?: string;
+    groupKey?: string;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    size?: number;
+    color?: string;
+    kind?: string;
+  }>;
+  tags: string[];
 };
 
 declare global {
@@ -118,6 +145,85 @@ function toBrainAssets(documents: VaultDocument[]): BrainAsset[] {
     raw: doc.raw,
     metadata: doc.metadata,
   }));
+}
+
+function graphNodeColor(layer: string | undefined, kindMode: string) {
+  if (kindMode === "filesystem") {
+    return layer === "filesystem" ? "#67e8f9" : "#cbd5e1";
+  }
+  if (kindMode === "code") {
+    return layer === "code" ? "#a78bfa" : "#cbd5e1";
+  }
+  if (kindMode === "temporal") {
+    return layer === "temporal" ? "#f59e0b" : "#cbd5e1";
+  }
+  if (kindMode === "hybrid") {
+    if (layer === "code") return "#a78bfa";
+    if (layer === "filesystem") return "#67e8f9";
+    if (layer === "temporal") return "#f59e0b";
+    return "#7dd3fc";
+  }
+  return "#7dd3fc";
+}
+
+function graphEdgeColor(kind: string | undefined, kindMode: string) {
+  if (kind === "imports") return "#a78bfa";
+  if (kind === "contains" || kind === "hierarchy") return "#67e8f9";
+  if (kind === "session-activity" || kind === "recent-reference") return "#f59e0b";
+  if (kindMode === "code") return "#a78bfa";
+  if (kindMode === "filesystem") return "#67e8f9";
+  if (kindMode === "temporal") return "#f59e0b";
+  return "#cbd5e1";
+}
+
+function mapGraphDataForWorkspace(
+  graph: GraphData,
+  documents: VaultGraphDocument[],
+  graphLayerMode: string,
+): WorkspaceGraphData {
+  const tags = [...new Set(documents.flatMap((doc) => doc.tags || []))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+
+  return {
+    nodes: graph.nodes.map((node) => {
+      const nodeId = String(node.id);
+      const matchedDocument = documents.find(
+        (doc) =>
+          doc.relativePath === nodeId ||
+          doc.id === nodeId ||
+          titleFromPath(doc.relativePath).toLowerCase() === String(node.title || "").toLowerCase(),
+      );
+
+      return {
+        id: nodeId,
+        title: node.title || nodeId,
+        type: node.type,
+        layer: node.layer,
+        cluster: node.cluster,
+        tags: node.tags || [],
+        score: node.score,
+        color: graphNodeColor(node.layer, graphLayerMode),
+        size:
+          typeof node.score === "number"
+            ? Math.max(4.5, Math.min(15, node.score * 8))
+            : 6.5,
+        relativePath: matchedDocument?.relativePath,
+        groupKey: node.cluster || node.layer || node.type || "general",
+      };
+    }),
+    edges: graph.edges.map((edge) => ({
+      source: String(edge.source),
+      target: String(edge.target),
+      size:
+        typeof edge.weight === "number"
+          ? Math.max(1, Math.min(4, edge.weight * 2.2))
+          : 1.25,
+      color: graphEdgeColor(edge.kind, graphLayerMode),
+      kind: edge.kind,
+    })),
+    tags,
+  };
 }
 
 function EmptyState({
@@ -341,9 +447,11 @@ export default function App() {
 
   const [settings, setSettings] = useState<BrainSettings>(() => loadSettings());
   const [surface, setSurface] = useState<Surface>(DEFAULT_SETTINGS.defaultSurface);
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(DEFAULT_SETTINGS.defaultWorkspaceMode);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(
+    DEFAULT_SETTINGS.defaultWorkspaceMode,
+  );
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeIdState, setSelectedNodeIdState] = useState<string | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<VaultDocument | null>(null);
   const [draft, setDraft] = useState("");
@@ -365,6 +473,11 @@ export default function App() {
   const platform =
     typeof window !== "undefined" ? window.brainDesktop?.platform || "unknown" : "unknown";
 
+  const graphLayerMode = useAppStore((state) => state.graphLayerMode);
+  const sessionActivityIds = useAppStore((state) => state.sessionActivityIds);
+  const recordSessionNodeActivity = useAppStore((state) => state.recordSessionNodeActivity);
+  const setStoreGraphPayload = useAppStore((state) => state.setGraphPayload);
+
   useEffect(() => {
     const stored = loadSettings();
     setSettings(stored);
@@ -377,6 +490,24 @@ export default function App() {
     applySettingsToDocument(settings);
     saveSettings(settings);
   }, [settings]);
+
+  const setSelectedNodeId = useCallback(
+    ((value: React.SetStateAction<string | null>) => {
+      setSelectedNodeIdState((previous) => {
+        const next =
+          typeof value === "function"
+            ? (value as (prevState: string | null) => string | null)(previous)
+            : value;
+
+        if (next) {
+          recordSessionNodeActivity(next);
+        }
+
+        return next;
+      });
+    }) as React.Dispatch<React.SetStateAction<string | null>>,
+    [recordSessionNodeActivity],
+  );
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -463,6 +594,15 @@ export default function App() {
         if (!mounted) return;
 
         setGraphPayload(payload);
+        setStoreGraphPayload({
+          graph: payload.graph,
+          gaps: payload.gaps,
+          vaultPath: payload.vaultPath,
+          source: payload.source,
+          noteCount: payload.noteCount,
+          lastUpdatedAt: payload.lastUpdatedAt,
+        });
+
         setSelectedNodeId(payload.graph.nodes[0]?.id || null);
         setStatus("ready");
         setError(null);
@@ -478,6 +618,14 @@ export default function App() {
 
     const unsubscribe = window.brainDesktop?.onVaultUpdated?.((payload) => {
       setGraphPayload(payload);
+      setStoreGraphPayload({
+        graph: payload.graph,
+        gaps: payload.gaps,
+        vaultPath: payload.vaultPath,
+        source: payload.source,
+        noteCount: payload.noteCount,
+        lastUpdatedAt: payload.lastUpdatedAt,
+      });
       setStatus("ready");
       setError(null);
       void loadVaultIndex();
@@ -487,7 +635,7 @@ export default function App() {
       mounted = false;
       unsubscribe?.();
     };
-  }, []);
+  }, [setSelectedNodeId, setStoreGraphPayload]);
 
   const assets = useMemo(() => toBrainAssets(vaultIndex?.documents || []), [vaultIndex?.documents]);
   const hasWritableVault = Boolean(vaultIndex?.vaultPath);
@@ -529,7 +677,7 @@ export default function App() {
     });
   }, [docsSearch, liveDocuments]);
 
-  const graphData = useMemo(() => {
+  const baseGraph = useMemo<GraphData>(() => {
     if (liveDocuments.length) {
       return buildUnifiedGraphFromDocuments({
         documents: liveDocuments,
@@ -544,10 +692,27 @@ export default function App() {
     return buildUnifiedGraphFromPayload(graphPayload?.graph || { nodes: [], edges: [] });
   }, [activeLayer, activeTag, graphPayload?.graph, graphSearch, liveDocuments]);
 
+  const derivedGraph = useMemo<GraphData>(() => {
+    return deriveGraphModeData({
+      baseGraph,
+      documents: liveDocuments as VaultGraphDocument[],
+      mode: graphLayerMode,
+      sessionActivityIds,
+    });
+  }, [baseGraph, graphLayerMode, liveDocuments, sessionActivityIds]);
+
+  const graphData = useMemo<WorkspaceGraphData>(() => {
+    return mapGraphDataForWorkspace(
+      derivedGraph,
+      liveDocuments as VaultGraphDocument[],
+      graphLayerMode,
+    );
+  }, [derivedGraph, graphLayerMode, liveDocuments]);
+
   const selectedGraphNode = useMemo(() => {
-    if (!selectedNodeId) return null;
-    return graphData.nodes.find((node) => node.id === selectedNodeId) || null;
-  }, [graphData.nodes, selectedNodeId]);
+    if (!selectedNodeIdState) return null;
+    return graphData.nodes.find((node) => node.id === selectedNodeIdState) || null;
+  }, [graphData.nodes, selectedNodeIdState]);
 
   const analysis = useMemo(() => {
     return {
@@ -571,6 +736,15 @@ export default function App() {
       }
 
       setGraphPayload(nextPayload);
+      setStoreGraphPayload({
+        graph: nextPayload.graph,
+        gaps: nextPayload.gaps,
+        vaultPath: nextPayload.vaultPath,
+        source: nextPayload.source,
+        noteCount: nextPayload.noteCount,
+        lastUpdatedAt: nextPayload.lastUpdatedAt,
+      });
+
       const nextIndex = await loadVaultIndex();
 
       setSurface("workspace");
@@ -596,7 +770,17 @@ export default function App() {
       setError(null);
 
       const nextPayload = await window.brainDesktop?.refreshVault?.();
-      if (nextPayload) setGraphPayload(nextPayload);
+      if (nextPayload) {
+        setGraphPayload(nextPayload);
+        setStoreGraphPayload({
+          graph: nextPayload.graph,
+          gaps: nextPayload.gaps,
+          vaultPath: nextPayload.vaultPath,
+          source: nextPayload.source,
+          noteCount: nextPayload.noteCount,
+          lastUpdatedAt: nextPayload.lastUpdatedAt,
+        });
+      }
 
       const nextIndex = await loadVaultIndex();
 
@@ -624,6 +808,15 @@ export default function App() {
 
       const payload = await window.brainDesktop.useSampleVault();
       setGraphPayload(payload);
+      setStoreGraphPayload({
+        graph: payload.graph,
+        gaps: payload.gaps,
+        vaultPath: payload.vaultPath,
+        source: payload.source,
+        noteCount: payload.noteCount,
+        lastUpdatedAt: payload.lastUpdatedAt,
+      });
+
       setVaultIndex(null);
       setSelectedNodeId(payload.graph.nodes[0]?.id || null);
       setSelectedPath(null);
@@ -651,6 +844,7 @@ export default function App() {
       setSelectedPath(doc.relativePath);
       setDraft(doc.raw);
       setSurface("workspace");
+      recordSessionNodeActivity(doc.relativePath);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to read document.");
     }
@@ -670,8 +864,19 @@ export default function App() {
       setSelectedDocument(saved);
       setDraft(saved.raw);
       await loadVaultIndex();
+
       const refreshed = await window.brainDesktop?.refreshVault?.();
-      if (refreshed) setGraphPayload(refreshed);
+      if (refreshed) {
+        setGraphPayload(refreshed);
+        setStoreGraphPayload({
+          graph: refreshed.graph,
+          gaps: refreshed.gaps,
+          vaultPath: refreshed.vaultPath,
+          source: refreshed.source,
+          noteCount: refreshed.noteCount,
+          lastUpdatedAt: refreshed.lastUpdatedAt,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save document.");
     }
@@ -696,8 +901,19 @@ export default function App() {
       if (!created) return;
 
       await loadVaultIndex();
+
       const refreshed = await window.brainDesktop?.refreshVault?.();
-      if (refreshed) setGraphPayload(refreshed);
+      if (refreshed) {
+        setGraphPayload(refreshed);
+        setStoreGraphPayload({
+          graph: refreshed.graph,
+          gaps: refreshed.gaps,
+          vaultPath: refreshed.vaultPath,
+          source: refreshed.source,
+          noteCount: refreshed.noteCount,
+          lastUpdatedAt: refreshed.lastUpdatedAt,
+        });
+      }
 
       const folderParts = relativePath.split("/");
       if (folderParts.length > 1) {
@@ -731,8 +947,19 @@ export default function App() {
       if (!created) return;
 
       await loadVaultIndex();
+
       const refreshed = await window.brainDesktop?.refreshVault?.();
-      if (refreshed) setGraphPayload(refreshed);
+      if (refreshed) {
+        setGraphPayload(refreshed);
+        setStoreGraphPayload({
+          graph: refreshed.graph,
+          gaps: refreshed.gaps,
+          vaultPath: refreshed.vaultPath,
+          source: refreshed.source,
+          noteCount: refreshed.noteCount,
+          lastUpdatedAt: refreshed.lastUpdatedAt,
+        });
+      }
 
       await handleOpenDocument(created.relativePath);
       setSurface("workspace");
@@ -754,8 +981,19 @@ export default function App() {
 
       await window.brainDesktop?.createFolder?.({ relativePath });
       await loadVaultIndex();
+
       const refreshed = await window.brainDesktop?.refreshVault?.();
-      if (refreshed) setGraphPayload(refreshed);
+      if (refreshed) {
+        setGraphPayload(refreshed);
+        setStoreGraphPayload({
+          graph: refreshed.graph,
+          gaps: refreshed.gaps,
+          vaultPath: refreshed.vaultPath,
+          source: refreshed.source,
+          noteCount: refreshed.noteCount,
+          lastUpdatedAt: refreshed.lastUpdatedAt,
+        });
+      }
 
       setExpandedFolders((prev) => new Set([...prev, relativePath]));
       setSurface("workspace");
@@ -776,20 +1014,81 @@ export default function App() {
 
   const commandActions = useMemo<WorkspaceCommand[]>(
     () => [
-      { id: "open-vault", label: "Open vault", keywords: ["folder", "filesystem"], run: () => void handleChooseVault() },
-      { id: "refresh", label: "Refresh vault", keywords: ["reload"], run: () => void handleRefresh() },
-      { id: "sample", label: "Load sample graph", keywords: ["demo"], run: () => void handleLoadSample() },
-      { id: "new-note", label: "Create new note", keywords: ["markdown"], run: () => void handleCreateDocument() },
-      { id: "new-folder", label: "Create new folder", keywords: ["tree"], run: () => void handleCreateFolder() },
-      { id: "graph-mode", label: "Switch to Graph mode", run: () => setWorkspaceMode("graph") },
-      { id: "content-mode", label: "Switch to Content mode", run: () => setWorkspaceMode("content") },
-      { id: "split-mode", label: "Switch to Split mode", run: () => setWorkspaceMode("split") },
-      { id: "toggle-left", label: "Toggle library dock", run: () => setLeftRailOpen((value) => !value) },
-      { id: "toggle-right", label: "Toggle insights dock", run: () => setRightRailOpen((value) => !value) },
-      { id: "toggle-graph-fullscreen", label: "Toggle fullscreen graph", run: () => setGraphFullscreen((value) => !value) },
-      { id: "surface-library", label: "Go to Library surface", run: () => setSurface("library") },
-      { id: "surface-insights", label: "Go to Insights surface", run: () => setSurface("insights") },
-      { id: "surface-settings", label: "Go to Settings surface", run: () => setSurface("settings") },
+      {
+        id: "open-vault",
+        label: "Open vault",
+        keywords: ["folder", "filesystem"],
+        run: () => void handleChooseVault(),
+      },
+      {
+        id: "refresh",
+        label: "Refresh vault",
+        keywords: ["reload"],
+        run: () => void handleRefresh(),
+      },
+      {
+        id: "sample",
+        label: "Load sample graph",
+        keywords: ["demo"],
+        run: () => void handleLoadSample(),
+      },
+      {
+        id: "new-note",
+        label: "Create new note",
+        keywords: ["markdown"],
+        run: () => void handleCreateDocument(),
+      },
+      {
+        id: "new-folder",
+        label: "Create new folder",
+        keywords: ["tree"],
+        run: () => void handleCreateFolder(),
+      },
+      {
+        id: "graph-mode",
+        label: "Switch to Graph mode",
+        run: () => setWorkspaceMode("graph"),
+      },
+      {
+        id: "content-mode",
+        label: "Switch to Content mode",
+        run: () => setWorkspaceMode("content"),
+      },
+      {
+        id: "split-mode",
+        label: "Switch to Split mode",
+        run: () => setWorkspaceMode("split"),
+      },
+      {
+        id: "toggle-left",
+        label: "Toggle library dock",
+        run: () => setLeftRailOpen((value) => !value),
+      },
+      {
+        id: "toggle-right",
+        label: "Toggle insights dock",
+        run: () => setRightRailOpen((value) => !value),
+      },
+      {
+        id: "toggle-graph-fullscreen",
+        label: "Toggle fullscreen graph",
+        run: () => setGraphFullscreen((value) => !value),
+      },
+      {
+        id: "surface-library",
+        label: "Go to Library surface",
+        run: () => setSurface("library"),
+      },
+      {
+        id: "surface-insights",
+        label: "Go to Insights surface",
+        run: () => setSurface("insights"),
+      },
+      {
+        id: "surface-settings",
+        label: "Go to Settings surface",
+        run: () => setSurface("settings"),
+      },
     ],
     [],
   );
@@ -840,7 +1139,7 @@ export default function App() {
               rightRailOpen={rightRailOpen}
               setRightRailOpen={setRightRailOpen}
               graphData={graphData}
-              selectedNodeId={selectedNodeId}
+              selectedNodeId={selectedNodeIdState}
               setSelectedNodeId={setSelectedNodeId}
               selectedGraphNode={selectedGraphNode}
               vaultIndex={vaultIndex}
@@ -894,7 +1193,7 @@ export default function App() {
           {surface === "settings" ? (
             <SurfacePlaceholder
               title="Settings"
-              text={`Theme: ${settings.themeMode}. Density: ${settings.densityMode}.`}
+              text={`Theme: ${settings.themeMode}. Density: ${settings.densityMode}. Active graph layer: ${graphLayerMode}.`}
             />
           ) : null}
 
