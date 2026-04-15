@@ -1,4 +1,3 @@
-/* apps/desktop/src/styles/graph-research.css */
 .graph-research-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 24rem;
@@ -23,11 +22,21 @@
 
 .research-panel {
   border-radius: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: linear-gradient(180deg, rgba(18,24,39,0.74), rgba(8,11,24,0.60));
-  box-shadow: 0 18px 60px rgba(0,0,0,0.30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(18, 24, 39, 0.74), rgba(8, 11, 24, 0.6));
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(24px);
   padding: 1rem;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.research-panel:hover {
+  transform: translateY(-2px);
+  border-color: rgba(125, 211, 252, 0.16);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
 }
 
 .research-panel__header {
@@ -44,7 +53,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(196,208,255,0.82);
+  color: rgba(196, 208, 255, 0.82);
 }
 
 .research-panel__title {
@@ -65,7 +74,7 @@
 
 .research-label {
   font-size: 0.78rem;
-  color: rgba(255,255,255,0.58);
+  color: rgba(255, 255, 255, 0.58);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -85,8 +94,18 @@
   gap: 0.65rem;
   padding: 0.95rem;
   border-radius: 1rem;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
 }
 
 .insight-card--high {
@@ -112,7 +131,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255,255,255,0.56);
+  color: rgba(255, 255, 255, 0.56);
 }
 
 .insight-card__title {
@@ -124,7 +143,7 @@
 .insight-card__body {
   margin: 0;
   font-size: 0.88rem;
-  color: rgba(255,255,255,0.74);
+  color: rgba(255, 255, 255, 0.74);
 }
 
 .insight-card__footer {
@@ -136,7 +155,7 @@
 
 .insight-card__count {
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.54);
+  color: rgba(255, 255, 255, 0.54);
 }
 
 @media (max-width: 1080px) {
