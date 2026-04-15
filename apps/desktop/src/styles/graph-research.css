@@ -1,0 +1,150 @@
+/* apps/desktop/src/styles/graph-research.css */
+.graph-research-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  gap: 1rem;
+  min-height: calc(100vh - 8rem);
+}
+
+.graph-research-layout__canvas {
+  min-width: 0;
+  min-height: 0;
+}
+
+.graph-research-layout__sidebar {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.graph-research-canvas {
+  min-height: calc(100vh - 8rem);
+}
+
+.research-panel {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(18,24,39,0.74), rgba(8,11,24,0.60));
+  box-shadow: 0 18px 60px rgba(0,0,0,0.30);
+  backdrop-filter: blur(24px);
+  padding: 1rem;
+}
+
+.research-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.research-panel__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(196,208,255,0.82);
+}
+
+.research-panel__title {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.research-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.research-group {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.research-label {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.58);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.research-grid {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.insight-cards {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.insight-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+}
+
+.insight-card--high {
+  border-color: rgba(251, 113, 133, 0.22);
+  background: rgba(251, 113, 133, 0.08);
+}
+
+.insight-card--medium {
+  border-color: rgba(250, 204, 21, 0.22);
+  background: rgba(250, 204, 21, 0.07);
+}
+
+.insight-card--low {
+  border-color: rgba(125, 211, 252, 0.18);
+  background: rgba(125, 211, 252, 0.05);
+}
+
+.insight-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.56);
+}
+
+.insight-card__title {
+  margin: 0;
+  font-size: 0.96rem;
+  color: #fff;
+}
+
+.insight-card__body {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.74);
+}
+
+.insight-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.insight-card__count {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.54);
+}
+
+@media (max-width: 1080px) {
+  .graph-research-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .graph-research-canvas {
+    min-height: 32rem;
+  }
+}

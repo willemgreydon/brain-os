@@ -1,0 +1,47 @@
+{
+  "name": "@brain/desktop",
+  "version": "0.2.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "./dist-electron/apps/desktop/electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && tsc -p tsconfig.electron.json && electron .\"",
+    "build": "tsc -p tsconfig.electron.json && vite build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+  },
+  "dependencies": {
+    "@brain/ai-gap-engine": "workspace:*",
+    "@brain/graph-core": "workspace:*",
+    "@brain/knowledge-engine": "workspace:*",
+    "@brain/semantic-engine": "workspace:*",
+    "@brain/ui": "workspace:*",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "chokidar": "^4.0.1",
+    "d3-force-3d": "^3.0.6",
+    "framer-motion": "^12.38.0",
+    "graphology": "^0.26.0",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "gray-matter": "^4.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-force-graph-3d": "^1.29.1",
+    "sigma": "^3.0.2",
+    "three": "0.182.0",
+    "three-spritetext": "^1.10.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "electron": "^33.4.11",
+    "postcss": "^8.5.9",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2",
+    "wait-on": "^8.0.3"
+  }
+}

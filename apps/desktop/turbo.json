@@ -1,0 +1,13 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "with": [
+        "@brain/graph-core#dev",
+        "@brain/knowledge-engine#dev",
+        "@brain/ai-gap-engine#dev",
+        "@brain/semantic-engine#dev"
+      ]
+    }
+  }
+}

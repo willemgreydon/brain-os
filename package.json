@@ -1,0 +1,21 @@
+{
+  "name": "brain-os",
+  "version": "0.2.0",
+  "private": true,
+  "packageManager": "pnpm@10.6.1",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "clean": "turbo run clean"
+  },
+  "pnpm": {
+    "overrides": {
+      "three": "0.182.0"
+    }
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
+  }
+}
