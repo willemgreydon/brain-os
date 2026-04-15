@@ -497,8 +497,26 @@ export default function App() {
       ["markdown", "code", "script", "json", "csv", "text"].includes(selectedDocument.type),
   );
 
-  const filteredDocuments = useMemo(() => {
+  const liveDocuments = useMemo(() => {
     const docs = vaultIndex?.documents || [];
+    if (!selectedDocument || !selectedPath) return docs;
+
+    return docs.map((doc) => {
+      if (doc.relativePath !== selectedPath) return doc;
+
+      return {
+        ...doc,
+        raw: draft,
+        tags: extractTags(draft),
+        links: extractLinks(draft),
+        wordCount: countWords(draft),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+  }, [draft, selectedDocument, selectedPath, vaultIndex?.documents]);
+
+  const filteredDocuments = useMemo(() => {
+    const docs = liveDocuments;
     const q = docsSearch.trim().toLowerCase();
     if (!q) return docs;
 
@@ -509,12 +527,12 @@ export default function App() {
         doc.tags.join(" ").toLowerCase().includes(q)
       );
     });
-  }, [docsSearch, vaultIndex?.documents]);
+  }, [docsSearch, liveDocuments]);
 
   const graphData = useMemo(() => {
-    if (vaultIndex?.documents?.length) {
+    if (liveDocuments.length) {
       return buildUnifiedGraphFromDocuments({
-        documents: vaultIndex.documents,
+        documents: liveDocuments,
         filters: {
           search: graphSearch,
           activeTag,
@@ -524,7 +542,7 @@ export default function App() {
     }
 
     return buildUnifiedGraphFromPayload(graphPayload?.graph || { nodes: [], edges: [] });
-  }, [activeLayer, activeTag, graphPayload?.graph, graphSearch, vaultIndex?.documents]);
+  }, [activeLayer, activeTag, graphPayload?.graph, graphSearch, liveDocuments]);
 
   const selectedGraphNode = useMemo(() => {
     if (!selectedNodeId) return null;
@@ -831,6 +849,7 @@ export default function App() {
               selectedDocument={selectedDocument}
               draft={draft}
               setDraft={setDraft}
+              liveDocuments={liveDocuments}
               filteredDocuments={filteredDocuments}
               expandedFolders={expandedFolders}
               toggleExpanded={toggleExpanded}

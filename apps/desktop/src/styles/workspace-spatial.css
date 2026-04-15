@@ -1152,3 +1152,117 @@ code {
     padding: 1.5rem;
   }
 }
+
+.smart-editor {
+  position: relative;
+}
+
+.smart-editor__autocomplete {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 20;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(18, 24, 39, 0.95), rgba(8, 11, 24, 0.9));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  overflow: hidden;
+}
+
+.smart-editor__autocomplete-head {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(196, 208, 255, 0.82);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.smart-editor__autocomplete-list {
+  display: grid;
+}
+
+.smart-editor__autocomplete-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 0;
+  background: transparent;
+  color: white;
+  text-align: left;
+}
+
+.smart-editor__autocomplete-item:hover,
+.smart-editor__autocomplete-item--active {
+  background: rgba(125, 211, 252, 0.08);
+}
+
+.smart-editor__autocomplete-main {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.smart-editor__autocomplete-main span,
+.smart-editor__autocomplete-score {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.note-health {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.note-health__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.note-health__bar {
+  width: 100%;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.note-health__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.9), rgba(52, 211, 153, 0.9));
+}
+
+.bridge-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bridge-card__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+}
+
+.workspace-rail-stack--right {
+  grid-template-rows: auto auto auto 1fr;
+}
+
+.workspace-rail-stack__intelligence {
+  min-height: 0;
+}

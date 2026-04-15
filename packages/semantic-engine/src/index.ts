@@ -1,8 +1,34 @@
-import type { GraphEdge, GraphNode } from "../../graph-core/src/index";
+import type { GraphEdge, GraphNode } from "@brain/graph-core";
 
 const STOPWORDS = new Set([
-  "the", "and", "for", "with", "this", "that", "from", "into", "your", "you", "are", "was", "were", "used",
-  "und", "der", "die", "das", "mit", "von", "ist", "ein", "eine", "im", "in", "zu", "auf", "als"
+  "the",
+  "and",
+  "for",
+  "with",
+  "this",
+  "that",
+  "from",
+  "into",
+  "your",
+  "you",
+  "are",
+  "was",
+  "were",
+  "used",
+  "und",
+  "der",
+  "die",
+  "das",
+  "mit",
+  "von",
+  "ist",
+  "ein",
+  "eine",
+  "im",
+  "in",
+  "zu",
+  "auf",
+  "als",
 ]);
 
 function normalize(text: string) {
@@ -14,20 +40,30 @@ function normalize(text: string) {
 }
 
 function setFrom(node: GraphNode) {
-  return new Set([...normalize(node.title), ...normalize(node.content ?? ""), ...node.tags.map((tag) => tag.toLowerCase())]);
+  return new Set([
+    ...normalize(node.title),
+    ...normalize(node.content ?? ""),
+    ...node.tags.map((tag) => tag.toLowerCase()),
+  ]);
 }
 
 function jaccard(a: Set<string>, b: Set<string>) {
   let intersection = 0;
-  for (const value of a) if (b.has(value)) intersection += 1;
+
+  for (const value of a) {
+    if (b.has(value)) intersection += 1;
+  }
+
   const union = new Set([...a, ...b]).size;
   return union === 0 ? 0 : intersection / union;
 }
 
-export function buildSemanticEdges(nodes: GraphNode[], existingEdges: GraphEdge[]): GraphEdge[] {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
+export function buildSemanticEdges(
+  nodes: GraphNode[],
+  existingEdges: GraphEdge[],
+): GraphEdge[] {
   const existingPairs = new Set(
-    existingEdges.map((edge) => [edge.source, edge.target].sort().join("::"))
+    existingEdges.map((edge) => [edge.source, edge.target].sort().join("::")),
   );
 
   const vectors = new Map(nodes.map((node) => [node.id, setFrom(node)]));
@@ -38,6 +74,7 @@ export function buildSemanticEdges(nodes: GraphNode[], existingEdges: GraphEdge[
       const a = nodes[i];
       const b = nodes[j];
       const pair = [a.id, b.id].sort().join("::");
+
       if (existingPairs.has(pair)) continue;
 
       const similarity = jaccard(vectors.get(a.id)!, vectors.get(b.id)!);
@@ -52,7 +89,7 @@ export function buildSemanticEdges(nodes: GraphNode[], existingEdges: GraphEdge[
           target: b.id,
           weight: Number(Math.min(0.82, score).toFixed(2)),
           kind: "semantic",
-          label: `semantic ${(score * 100).toFixed(0)}%`
+          label: `semantic ${(score * 100).toFixed(0)}%`,
         });
       }
     }

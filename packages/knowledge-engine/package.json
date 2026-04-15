@@ -3,29 +3,28 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
-    "dev": "tsup src/index.ts --format esm --dts --watch",
-    "typecheck": "tsc --noEmit"
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@brain/graph-core": "workspace:*",
     "@brain/semantic-engine": "workspace:*",
     "gray-matter": "^4.0.3"
-  },
-  "devDependencies": {
-    "@types/node": "^24.0.0",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
   }
 }

@@ -6,6 +6,9 @@ import GraphCanvas3D from "../GraphCanvas3D";
 import FloatingPanel from "./FloatingPanel";
 import QuickNoteComposer from "./QuickNoteComposer";
 import BacklinksTray from "./BacklinksTray";
+import SmartNoteEditor from "./SmartNoteEditor";
+import NoteIntelligencePanel from "./NoteIntelligencePanel";
+import { buildNoteIntelligence } from "../../features/note-intelligence/note-intelligence";
 
 type BrainAsset = {
   id: string;
@@ -83,6 +86,7 @@ type SpatialWorkspaceProps = {
   selectedDocument: VaultDocument | null;
   draft: string;
   setDraft: React.Dispatch<React.SetStateAction<string>>;
+  liveDocuments: VaultDocument[];
 
   filteredDocuments: VaultDocument[];
   expandedFolders: Set<string>;
@@ -361,6 +365,7 @@ function DockedEditor({
   onReload,
   onSave,
   rightRailOpen,
+  liveDocuments,
 }: {
   selectedDocument: VaultDocument | null;
   selectedPath: string | null;
@@ -370,6 +375,7 @@ function DockedEditor({
   onReload: () => void;
   onSave: () => void;
   rightRailOpen: boolean;
+  liveDocuments: VaultDocument[];
 }) {
   return (
     <div
@@ -397,12 +403,12 @@ function DockedEditor({
         }
       >
         {selectedDocument ? (
-          <textarea
-            className="editor editor--docked"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            disabled={!canEditSelectedDocument}
-            placeholder="# New note"
+          <SmartNoteEditor
+            selectedDocument={selectedDocument}
+            draft={draft}
+            setDraft={setDraft}
+            canEditSelectedDocument={canEditSelectedDocument}
+            allDocuments={liveDocuments}
           />
         ) : (
           <div className="workspace-empty-note">
@@ -595,6 +601,7 @@ function RightRailStack({
   selectedDocument,
   hasWritableVault,
   onQuickCreateDocument,
+  intelligence,
 }: {
   rightRailOpen: boolean;
   selectedGraphNode:
@@ -613,6 +620,7 @@ function RightRailStack({
   selectedDocument: VaultDocument | null;
   hasWritableVault: boolean;
   onQuickCreateDocument: (input: { relativePath: string; raw: string }) => Promise<void>;
+  intelligence: ReturnType<typeof buildNoteIntelligence>;
 }) {
   if (!rightRailOpen) return null;
 
@@ -668,6 +676,13 @@ function RightRailStack({
         </FloatingPanel>
       </div>
 
+      <div className="workspace-rail-stack__intelligence">
+        <NoteIntelligencePanel
+          intelligence={intelligence}
+          onOpenDocument={onOpenDocument}
+        />
+      </div>
+
       <div className="workspace-rail-stack__composer">
         <QuickNoteComposer
           enabled={hasWritableVault}
@@ -696,6 +711,7 @@ export default function SpatialWorkspace({
   selectedDocument,
   draft,
   setDraft,
+  liveDocuments,
   filteredDocuments,
   expandedFolders,
   toggleExpanded,
@@ -733,6 +749,11 @@ export default function SpatialWorkspace({
       return asset.links.some((link) => titleFromPath(link).toLowerCase() === currentBase);
     });
   }, [assets, selectedDocument]);
+
+  const intelligence = useMemo(
+    () => buildNoteIntelligence(selectedDocument, liveDocuments),
+    [liveDocuments, selectedDocument],
+  );
 
   const graphNodes3D = useMemo(
     () =>
@@ -844,6 +865,7 @@ export default function SpatialWorkspace({
         selectedDocument={selectedDocument}
         hasWritableVault={hasWritableVault}
         onQuickCreateDocument={onQuickCreateDocument}
+        intelligence={intelligence}
       />
 
       {selectedDocument ? (
@@ -859,6 +881,7 @@ export default function SpatialWorkspace({
             }}
             onSave={() => void onSaveDocument()}
             rightRailOpen={rightRailOpen}
+            liveDocuments={liveDocuments}
           />
 
           {workspaceMode === "split" ? (
